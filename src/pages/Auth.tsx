@@ -25,6 +25,11 @@ const Auth = () => {
     fullName: "",
     role: "student" as "student" | "alumni",
   });
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    message: "",
+    color: "",
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -33,6 +38,38 @@ const Auth = () => {
       }
     });
   }, [navigate]);
+
+  const checkPasswordStrength = (password: string) => {
+    let score = 0;
+    let message = "";
+    let color = "";
+
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[^a-zA-Z\d]/.test(password)) score++;
+
+    if (score === 0 || password.length < 8) {
+      message = "Too weak - Use at least 8 characters";
+      color = "text-destructive";
+    } else if (score <= 2) {
+      message = "Weak - Add uppercase, numbers, and symbols";
+      color = "text-orange-500";
+    } else if (score === 3) {
+      message = "Fair - Add more complexity";
+      color = "text-yellow-500";
+    } else if (score === 4) {
+      message = "Good - Consider adding more characters";
+      color = "text-blue-500";
+    } else {
+      message = "Strong password";
+      color = "text-green-500";
+    }
+
+    setPasswordStrength({ score, message, color });
+    return score >= 3;
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +95,34 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!signUpData.email || !signUpData.password || !signUpData.fullName) {
+      toast({
+        title: "Validation Error",
+        description: "All fields are required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signUpData.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!checkPasswordStrength(signUpData.password)) {
+      toast({
+        title: "Weak Password",
+        description: "Please use a stronger password (at least Fair rating)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -206,11 +271,40 @@ const Auth = () => {
                 <Input
                   id="signup-password"
                   type="password"
+                  placeholder="Min 8 characters"
                   value={signUpData.password}
-                  onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
+                  onChange={(e) => {
+                    setSignUpData({ ...signUpData, password: e.target.value });
+                    checkPasswordStrength(e.target.value);
+                  }}
                   required
-                  minLength={6}
+                  minLength={8}
                 />
+                {signUpData.password && (
+                  <div className="mt-2">
+                    <div className="flex gap-1 mb-1">
+                      {[...Array(5)].map((_, i) => (
+                        <div
+                          key={i}
+                          className={`h-1 flex-1 rounded ${
+                            i < passwordStrength.score
+                              ? passwordStrength.score === 5
+                                ? "bg-green-500"
+                                : passwordStrength.score === 4
+                                ? "bg-blue-500"
+                                : passwordStrength.score === 3
+                                ? "bg-yellow-500"
+                                : "bg-orange-500"
+                              : "bg-muted"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className={`text-xs ${passwordStrength.color}`}>
+                      {passwordStrength.message}
+                    </p>
+                  </div>
+                )}
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Creating account..." : "Create Account"}

@@ -152,101 +152,198 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Recent Connections */}
-          <Card className="p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Recent Connections</h2>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/mentors">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Find More
-                </Link>
-              </Button>
-            </div>
+        {profile?.role === "student" ? (
+          // Student Dashboard
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Recent Connections */}
+            <Card className="p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">My Mentors</h2>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/mentors">
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Find Mentors
+                  </Link>
+                </Button>
+              </div>
 
-            <div className="space-y-4">
-              {connections.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No connections yet</p>
-                  <Button className="mt-4" asChild>
-                    <Link to="/mentors">Start Connecting</Link>
-                  </Button>
-                </div>
-              ) : (
-                connections.map((connection) => {
-                  const otherUser =
-                    connection.student_id === profile?.id
-                      ? connection.mentor
-                      : connection.student;
-                  return (
-                    <Card key={connection.id} className="p-4 border hover:shadow-md transition-all">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-lg font-bold text-primary">
-                            {otherUser?.full_name?.[0]}
-                          </span>
+              <div className="space-y-4">
+                {connections.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No mentors yet</p>
+                    <Button className="mt-4" asChild>
+                      <Link to="/mentors">Connect with Mentors</Link>
+                    </Button>
+                  </div>
+                ) : (
+                  connections.map((connection) => {
+                    const mentor = connection.mentor;
+                    return (
+                      <Card key={connection.id} className="p-4 border hover:shadow-md transition-all">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-lg font-bold text-primary">
+                              {mentor?.full_name?.[0]}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold">{mentor?.full_name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {mentor?.job_title} at {mentor?.company}
+                            </p>
+                          </div>
+                          <Badge className={getConnectionStatusColor(connection.status)}>
+                            {connection.status === "accepted" && <CheckCircle className="w-3 h-3 mr-1" />}
+                            {connection.status === "pending" && <Clock className="w-3 h-3 mr-1" />}
+                            {connection.status}
+                          </Badge>
                         </div>
+                      </Card>
+                    );
+                  })
+                )}
+              </div>
+            </Card>
+
+            {/* Recent Job Postings */}
+            <Card className="p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Job Opportunities</h2>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/jobs">View All</Link>
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {recentJobs.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No jobs posted yet</p>
+                  </div>
+                ) : (
+                  recentJobs.map((job) => (
+                    <Card key={job.id} className="p-4 border hover:shadow-md transition-all">
+                      <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
-                          <h3 className="font-semibold">{otherUser?.full_name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {otherUser?.job_title || otherUser?.department}
+                          <h3 className="font-semibold mb-1">{job.title}</h3>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {job.company} • {job.location}
                           </p>
+                          <div className="flex gap-2">
+                            <Badge variant="secondary">{job.job_type}</Badge>
+                            {job.is_referral && (
+                              <Badge className="bg-accent/10 text-accent border-accent/20">
+                                Referral Available
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <Badge className={getConnectionStatusColor(connection.status)}>
-                          {connection.status === "accepted" && <CheckCircle className="w-3 h-3 mr-1" />}
-                          {connection.status === "pending" && <Clock className="w-3 h-3 mr-1" />}
-                          {connection.status}
-                        </Badge>
                       </div>
                     </Card>
-                  );
-                })
-              )}
-            </div>
-          </Card>
+                  ))
+                )}
+              </div>
+            </Card>
+          </div>
+        ) : (
+          // Alumni Dashboard
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* My Students */}
+            <Card className="p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">My Students</h2>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/mentors">View Requests</Link>
+                </Button>
+              </div>
 
-          {/* Recent Job Postings */}
-          <Card className="p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Recent Opportunities</h2>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/jobs">View All</Link>
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              {recentJobs.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No jobs posted yet</p>
-                </div>
-              ) : (
-                recentJobs.map((job) => (
-                  <Card key={job.id} className="p-4 border hover:shadow-md transition-all">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h3 className="font-semibold mb-1">{job.title}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {job.company} • {job.location}
-                        </p>
-                        <div className="flex gap-2">
-                          <Badge variant="secondary">{job.job_type}</Badge>
-                          {job.is_referral && (
-                            <Badge className="bg-accent/10 text-accent border-accent/20">
-                              Referral
-                            </Badge>
-                          )}
+              <div className="space-y-4">
+                {connections.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No students yet</p>
+                    <p className="text-sm mt-2">Students will send you connection requests</p>
+                  </div>
+                ) : (
+                  connections.map((connection) => {
+                    const student = connection.student;
+                    return (
+                      <Card key={connection.id} className="p-4 border hover:shadow-md transition-all">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
+                            <span className="text-lg font-bold text-secondary">
+                              {student?.full_name?.[0]}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold">{student?.full_name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {student?.department}
+                            </p>
+                          </div>
+                          <Badge className={getConnectionStatusColor(connection.status)}>
+                            {connection.status === "accepted" && <CheckCircle className="w-3 h-3 mr-1" />}
+                            {connection.status === "pending" && <Clock className="w-3 h-3 mr-1" />}
+                            {connection.status}
+                          </Badge>
                         </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
-          </Card>
-        </div>
+                      </Card>
+                    );
+                  })
+                )}
+              </div>
+            </Card>
+
+            {/* Job Postings & Referrals */}
+            <Card className="p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Job Referrals</h2>
+                <Button size="sm" asChild>
+                  <Link to="/jobs">
+                    <Briefcase className="w-4 h-4 mr-2" />
+                    Post Referral
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {recentJobs.filter(j => j.posted_by === profile?.id).length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No referrals posted yet</p>
+                    <Button className="mt-4" asChild>
+                      <Link to="/jobs">Post Your First Referral</Link>
+                    </Button>
+                  </div>
+                ) : (
+                  recentJobs
+                    .filter(j => j.posted_by === profile?.id)
+                    .map((job) => (
+                      <Card key={job.id} className="p-4 border hover:shadow-md transition-all">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h3 className="font-semibold mb-1">{job.title}</h3>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {job.company} • {job.location}
+                            </p>
+                            <div className="flex gap-2">
+                              <Badge variant="secondary">{job.job_type}</Badge>
+                              {job.is_referral && (
+                                <Badge className="bg-accent/10 text-accent border-accent/20">
+                                  Referral
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))
+                )}
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

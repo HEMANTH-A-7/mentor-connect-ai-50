@@ -26,7 +26,9 @@ const ProfileSetup = () => {
     job_title: "",
     linkedin_url: "",
     location: "",
+    phone_no: "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [skillInput, setSkillInput] = useState("");
   const [interestInput, setInterestInput] = useState("");
@@ -37,12 +39,12 @@ const ProfileSetup = () => {
         navigate("/auth");
         return;
       }
-      setUser(session.user);
-      loadProfile(session.user.id);
+      // Load profile data from profiles table to get role
+      loadUserProfile(session.user.id);
     });
   }, [navigate]);
 
-  const loadProfile = async (userId: string) => {
+  const loadUserProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
       .select("*")
@@ -50,6 +52,7 @@ const ProfileSetup = () => {
       .single();
 
     if (data) {
+      setUser(data); // Store full profile including role
       setProfile({
         department: data.department || "",
         graduation_year: data.graduation_year || new Date().getFullYear(),
@@ -60,8 +63,36 @@ const ProfileSetup = () => {
         job_title: data.job_title || "",
         linkedin_url: data.linkedin_url || "",
         location: data.location || "",
+        phone_no: data.phone_no || "",
       });
     }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!profile.department?.trim()) {
+      newErrors.department = "Department is required";
+    }
+    
+    if (profile.phone_no && !/^\+?[1-9]\d{1,14}$/.test(profile.phone_no)) {
+      newErrors.phone_no = "Invalid phone number format (e.g., +1234567890)";
+    }
+    
+    if (profile.linkedin_url && !/^https?:\/\/(www\.)?linkedin\.com\/.+/.test(profile.linkedin_url)) {
+      newErrors.linkedin_url = "Invalid LinkedIn URL";
+    }
+    
+    if (user?.role === "alumni" && !profile.company?.trim()) {
+      newErrors.company = "Company is required for alumni";
+    }
+    
+    if (profile.bio && profile.bio.length > 500) {
+      newErrors.bio = "Bio must be less than 500 characters";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const addSkill = () => {
@@ -97,12 +128,31 @@ const ProfileSetup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors before submitting",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     const { error } = await supabase
       .from("profiles")
       .update({
-        ...profile,
+        department: profile.department,
+        graduation_year: profile.graduation_year,
+        bio: profile.bio,
+        location: profile.location,
+        company: user?.role === "alumni" ? profile.company : null,
+        job_title: profile.job_title,
+        linkedin_url: profile.linkedin_url,
+        phone_no: profile.phone_no,
+        skills: profile.skills,
+        interests: profile.interests,
         updated_at: new Date().toISOString(),
       })
       .eq("id", user.id);
@@ -133,14 +183,17 @@ const ProfileSetup = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
+                <Label htmlFor="department">Department *</Label>
                 <Input
                   id="department"
                   placeholder="Computer Science"
                   value={profile.department}
                   onChange={(e) => setProfile({ ...profile, department: e.target.value })}
-                  required
+                  className={errors.department ? "border-destructive" : ""}
                 />
+                {errors.department && (
+                  <p className="text-sm text-destructive mt-1">{errors.department}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -163,12 +216,34 @@ const ProfileSetup = () => {
               <Label htmlFor="bio">Bio</Label>
               <Textarea
                 id="bio"
-                placeholder="Tell us about yourself..."
+                placeholder="Tell us about yourself... (max 500 characters)"
                 rows={4}
+                maxLength={500}
                 value={profile.bio}
                 onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                className={errors.bio ? "border-destructive" : ""}
                 required
               />
+              {errors.bio && (
+                <p className="text-sm text-destructive mt-1">{errors.bio}</p>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                {profile.bio.length}/500 characters
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone_no">Phone Number</Label>
+              <Input
+                id="phone_no"
+                placeholder="+1234567890"
+                value={profile.phone_no}
+                onChange={(e) => setProfile({ ...profile, phone_no: e.target.value })}
+                className={errors.phone_no ? "border-destructive" : ""}
+              />
+              {errors.phone_no && (
+                <p className="text-sm text-destructive mt-1">{errors.phone_no}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -182,18 +257,24 @@ const ProfileSetup = () => {
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="company">Company</Label>
-                <Input
-                  id="company"
-                  placeholder="Google India"
-                  value={profile.company}
-                  onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-                />
-              </div>
+              {user?.role === "alumni" && (
+                <div className="space-y-2">
+                  <Label htmlFor="company">Company *</Label>
+                  <Input
+                    id="company"
+                    placeholder="Google India"
+                    value={profile.company}
+                    onChange={(e) => setProfile({ ...profile, company: e.target.value })}
+                    className={errors.company ? "border-destructive" : ""}
+                  />
+                  {errors.company && (
+                    <p className="text-sm text-destructive mt-1">{errors.company}</p>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
-                <Label htmlFor="job_title">Job Title</Label>
+                <Label htmlFor="job_title">{user?.role === "alumni" ? "Job Title" : "Desired Role"}</Label>
                 <Input
                   id="job_title"
                   placeholder="Software Engineer"
@@ -211,7 +292,11 @@ const ProfileSetup = () => {
                 placeholder="https://linkedin.com/in/yourprofile"
                 value={profile.linkedin_url}
                 onChange={(e) => setProfile({ ...profile, linkedin_url: e.target.value })}
+                className={errors.linkedin_url ? "border-destructive" : ""}
               />
+              {errors.linkedin_url && (
+                <p className="text-sm text-destructive mt-1">{errors.linkedin_url}</p>
+              )}
             </div>
 
             <div className="space-y-2">
