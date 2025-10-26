@@ -166,6 +166,7 @@ export type Database = {
           job_title: string | null
           linkedin_url: string | null
           location: string | null
+          phone_no: string | null
           role: Database["public"]["Enums"]["user_role"]
           skills: string[] | null
           updated_at: string | null
@@ -184,6 +185,7 @@ export type Database = {
           job_title?: string | null
           linkedin_url?: string | null
           location?: string | null
+          phone_no?: string | null
           role: Database["public"]["Enums"]["user_role"]
           skills?: string[] | null
           updated_at?: string | null
@@ -202,6 +204,7 @@ export type Database = {
           job_title?: string | null
           linkedin_url?: string | null
           location?: string | null
+          phone_no?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           skills?: string[] | null
           updated_at?: string | null
